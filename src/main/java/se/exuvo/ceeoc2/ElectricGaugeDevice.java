@@ -11,6 +11,11 @@ import java.io.IOException;
 
 // This being a record means equals() matches devices from repeated queries for the same
 // block entity; otherwise the bus would remove and re-add the device on every scan.
+//
+// All methods are unsynchronized, so calls reply within the same VM step instead of waiting
+// for the next server tick. They only read plain fields of the block entity, which the
+// electrical simulation writes on the server thread once per tick, so the worst case is a
+// reading that is one tick old.
 @RPCDeviceDescription(typeName = "electric_gauge", description = """
     A Create Electro Energetics voltmeter or ammeter. Readings are the RMS value measured by the gauge, \
     in volts for voltmeters and amperes for ammeters.""")
@@ -32,31 +37,31 @@ public record ElectricGaugeDevice(ElectricGaugeBlockEntity gauge) {
 
     // --------------------------------------------------------------------- //
 
-    @Callback(description = "Gets the reading of the gauge with its scale setting applied, as shown by goggles but unrounded.",
+    @Callback(synchronize = false, description = "Gets the reading of the gauge with its scale setting applied, as shown by goggles but unrounded.",
         returnValueDescription = "the signed reading, in volts or amperes.")
     public double getValue() {
         return rawValue() * scale();
     }
 
-    @Callback(description = "Gets the reading of the gauge without its scale setting applied.",
+    @Callback(synchronize = false, description = "Gets the reading of the gauge without its scale setting applied.",
         returnValueDescription = "the signed reading, in volts or amperes.")
     public double getRawValue() {
         return rawValue();
     }
 
-    @Callback(description = "Gets the scale setting of the gauge.",
+    @Callback(synchronize = false, description = "Gets the scale setting of the gauge.",
         returnValueDescription = "the factor readings are multiplied by, from 0.001 to 1000.")
     public double getScale() {
         return scale();
     }
 
-    @Callback(description = "Gets which kind of gauge this is.",
+    @Callback(synchronize = false, description = "Gets which kind of gauge this is.",
         returnValueDescription = "\"voltmeter\" or \"ammeter\".")
     public String getType() {
         return gauge.voltmeter ? "voltmeter" : "ammeter";
     }
 
-    @Callback(description = "Gets the unit of the readings.",
+    @Callback(synchronize = false, description = "Gets the unit of the readings.",
         returnValueDescription = "\"V\" or \"A\".")
     public String getUnit() {
         return gauge.voltmeter ? "V" : "A";
@@ -64,42 +69,42 @@ public record ElectricGaugeDevice(ElectricGaugeBlockEntity gauge) {
 
     // --------------------------------------------------------------------- //
 
-    @IOCallback(value = GET_VALUE_CODE,
+    @IOCallback(value = GET_VALUE_CODE, synchronize = false,
         description = "Gets the reading of the gauge with its scale setting applied.",
         resultsDescription = "four bytes, the signed reading in thousandths of a volt or ampere.")
     public void getValue(final IOOutputStream results) throws IOException {
         writeFixedPoint(results, rawValue() * scale());
     }
 
-    @IOCallback(value = GET_RAW_VALUE_CODE,
+    @IOCallback(value = GET_RAW_VALUE_CODE, synchronize = false,
         description = "Gets the reading of the gauge without its scale setting applied.",
         resultsDescription = "four bytes, the signed reading in thousandths of a volt or ampere.")
     public void getRawValue(final IOOutputStream results) throws IOException {
         writeFixedPoint(results, rawValue());
     }
 
-    @IOCallback(value = GET_VALUE_EXACT_CODE,
+    @IOCallback(value = GET_VALUE_EXACT_CODE, synchronize = false,
         description = "Gets the exact reading of the gauge with its scale setting applied.",
         resultsDescription = "eight bytes, the reading in volts or amperes as an IEEE-754 double.")
     public void getValueExact(final IOOutputStream results) throws IOException {
         writeDouble(results, rawValue() * scale());
     }
 
-    @IOCallback(value = GET_RAW_VALUE_EXACT_CODE,
+    @IOCallback(value = GET_RAW_VALUE_EXACT_CODE, synchronize = false,
         description = "Gets the exact reading of the gauge without its scale setting applied.",
         resultsDescription = "eight bytes, the reading in volts or amperes as an IEEE-754 double.")
     public void getRawValueExact(final IOOutputStream results) throws IOException {
         writeDouble(results, rawValue());
     }
 
-    @IOCallback(value = GET_TYPE_CODE,
+    @IOCallback(value = GET_TYPE_CODE, synchronize = false,
         description = "Gets which kind of gauge this is.",
         resultsDescription = "one byte, `0` for a voltmeter, `1` for an ammeter.")
     public void getType(final IOOutputStream results) throws IOException {
         results.writeU8(gauge.voltmeter ? 0 : 1);
     }
 
-    @IOCallback(value = GET_SCALE_CODE,
+    @IOCallback(value = GET_SCALE_CODE, synchronize = false,
         description = "Gets the scale setting of the gauge.",
         resultsDescription = "one byte, the signed exponent `n` of the scale factor `10^n`, from `-3` to `3`.")
     public void getScale(final IOOutputStream results) throws IOException {
