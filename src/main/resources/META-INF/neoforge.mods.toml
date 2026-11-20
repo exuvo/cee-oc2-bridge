@@ -1,0 +1,33 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "MIT"
+
+[[mods]]
+modId = "cee_oc2"
+version = "1.0.0"
+displayName = "CEE OC2 Bridge"
+description = "Exposes Create Electro Energetics electric gauges to OpenComputers II computers. Server side only."
+# Server side only: clients do not need this mod.
+displayTest = "IGNORE_SERVER_VERSION"
+
+[[dependencies.cee_oc2]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1,)"
+
+[[dependencies.cee_oc2]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1]"
+
+[[dependencies.cee_oc2]]
+modId = "oc2"
+type = "required"
+versionRange = "[0,)"
+ordering = "AFTER"
+
+[[dependencies.cee_oc2]]
+modId = "electroenergetics"
+type = "required"
+versionRange = "[0,)"
+ordering = "AFTER"
